@@ -1,6 +1,10 @@
 
 package nfi.model;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import jam.app.JamProperties;
 import jam.math.DoubleUtil;
 
@@ -8,10 +12,12 @@ import jean.hla.Allele;
 import jean.neo.PeptidePair;
 import jean.peptide.Peptide;
 
-import pepmhc.affy.AffinityCache;
-import pepmhc.affy.AffinityMethod;
-import pepmhc.stab.StabilityCache;
-import pepmhc.stab.StabilityMethod;
+import pepmhc.bind.BindPredictor;
+import pepmhc.bind.BindRecord;
+import pepmhc.bind.BindRecordMap;
+
+import pepmhc.affy.net.NetMHCPanPredictor;
+import pepmhc.stab.net.NetStabPredictor;
 
 /**
  * Defines an interface to calculate the neo-peptide footprint index
@@ -63,69 +69,164 @@ public abstract class AlleleFootprintIndex {
     }
 
     /**
-     * Computes the neo-peptide footprint index for a single HLA
-     * allele.
+     * Computes neo-peptide footprint indexes for a single HLA
+     * allele and neo/self peptide pair.
      *
-     * @param pair the neo/self peptide pair.
+     * @param allele the HLA allele of interest
      *
-     * @param allele an HLA allele from a patient genotype.
+     * @param pair the neo/self peptide pair of interest.
      *
-     * @return the neo-peptide footprint index for the peptides and
-     * allele.
+     * @return the footprint index record for the given allele and
+     * neo/self peptide pair.
      */
-    public abstract double compute(PeptidePair pair, Allele allele);
+    public AlleleFootprintRecord compute(Allele allele, PeptidePair pair) {
+        return compute(allele, List.of(pair)).get(0);
+    }
+
+    /**
+     * Computes neo-peptide footprint indexes for a single HLA
+     * allele and a collection of neo/self peptide pairs.
+     *
+     * @param allele the HLA allele of interest
+     *
+     * @param pairs the neo/self peptide pairs of interest.
+     *
+     * @return a list containing the footprint index records for the
+     * given allele and all neo/self peptide pairs.
+     */
+    public List<AlleleFootprintRecord> compute(Allele allele, Collection<PeptidePair> pairs) {
+        //
+        // It is more efficient to compute all binding records in a
+        // single call to the underlying engine...
+        //
+        BindRecordMap bind = mapBinding(allele, pairs);
+        AlleleFootprintType type = getFootprintType();
+
+        List<AlleleFootprintRecord> records =
+            new ArrayList<AlleleFootprintRecord>(pairs.size());
+
+        for (PeptidePair pair : pairs) {
+            double index =
+                compute(allele, pair, bind);
+
+            AlleleFootprintRecord record =
+                AlleleFootprintRecord.create(allele, pair, type, index);
+
+            records.add(record);
+        }
+
+        return records;
+    }
+
+    @SuppressWarnings("unchecked")
+    private BindRecordMap mapBinding(Allele allele, Collection<PeptidePair> pairs) {
+        return getBindPredictor().map(allele, PeptidePair.peptides(pairs));
+    }
+
+    /**
+     * Computes neo-peptide footprint indexes for collections of HLA
+     * alleles and neo/self peptide pairs.
+     *
+     * @param alleles the HLA alleles of interest.
+     *
+     * @param pairs the neo/self peptide pairs of interest.
+     *
+     * @return a list containing the footprint index records for all
+     * allele-pair combinations.
+     */
+    public List<AlleleFootprintRecord> compute(Collection<Allele> alleles, Collection<PeptidePair> pairs) {
+        int recordCount = alleles.size() * pairs.size();
+
+        List<AlleleFootprintRecord> records =
+            new ArrayList<AlleleFootprintRecord>(recordCount);
+
+        for (Allele allele : alleles)
+            records.addAll(compute(allele, pairs));
+
+        return records;
+    }
+
+    /**
+     * Computes the neo-peptide footprint index for a single HLA
+     * allele and neo/self peptide pair.
+     *
+     * @param allele an HLA allele of interest.
+     *
+     * @param pair the neo/self peptide pair of interest.
+     *
+     * @param bind a map of binding records, which must contain
+     * records for the neo- and self-peptides.
+     *
+     * @return the footprint index record for the given allele,
+     * peptide pair, and binding records.
+     *
+     * @throws RuntimeException unless the binding map contains
+     * records for the neo- and self-peptides.
+     */
+    public abstract double compute(Allele allele, PeptidePair pair, BindRecordMap bind);
 
     /**
      * Returns the enumerated calculation type for this footprint.
      *
      * @return the enumerated calculation type for this footprint.
      */
-    public abstract AlleleFootprintType getType();
+    public abstract AlleleFootprintType getFootprintType();
+
+    /**
+     * Returns the binding strength prediction method used by this
+     * footprint.
+     *
+     * @return the binding strength prediction method used by this
+     * footprint.
+     */
+    public abstract BindPredictor getBindPredictor();
 
     // -----------------------------------------------------------------
 
     private static final class LogAffinity extends AlleleFootprintIndex {
-        @Override public double compute(PeptidePair pair, Allele allele) {
+        @Override public double compute(Allele allele, PeptidePair pair, BindRecordMap bind) {
             //
             // Affinity is expressed as an IC50 concentration:
             // peptides with a lower IC50 bind more strongly, so we
             // invert the ratio relative to the stability model...
             //
-            AffinityMethod method = AffinityMethod.NET_MHC_PAN;
-            AffinityCache  cache  = AffinityCache.instance(method, allele);
-
             Peptide neoPeptide = pair.neo();
             Peptide selfPeptide = pair.self();
 
-            double neoAffinity = cache.require(neoPeptide).getAffinity();
-            double selfAffinity = cache.require(selfPeptide).getAffinity();
+            double neoAffinity = bind.require(neoPeptide).getAffinity();
+            double selfAffinity = bind.require(selfPeptide).getAffinity();
 
             return DoubleUtil.log2(selfAffinity / neoAffinity);
         }
 
-        @Override public AlleleFootprintType getType() {
+        @Override public AlleleFootprintType getFootprintType() {
             return AlleleFootprintType.LOG_AFFINITY;
+        }
+
+        @Override public BindPredictor getBindPredictor() {
+            return NetMHCPanPredictor.INSTANCE;
         }
     }
 
     // -----------------------------------------------------------------
 
     private static final class LogStability extends AlleleFootprintIndex {
-        @Override public double compute(PeptidePair pair, Allele allele) {
-            StabilityMethod method = StabilityMethod.NET_MHC_STAB_PAN;
-            StabilityCache  cache  = StabilityCache.instance(method, allele);
-
+        @Override public double compute(Allele allele, PeptidePair pair, BindRecordMap bind) {
             Peptide neoPeptide = pair.neo();
             Peptide selfPeptide = pair.self();
 
-            double neoHalfLife = cache.require(neoPeptide).getHalfLife();
-            double selfHalfLife = cache.require(selfPeptide).getHalfLife();
+            double neoHalfLife = bind.require(neoPeptide).getHalfLife();
+            double selfHalfLife = bind.require(selfPeptide).getHalfLife();
 
             return DoubleUtil.log2(neoHalfLife / selfHalfLife);
         }
 
-        @Override public AlleleFootprintType getType() {
+        @Override public AlleleFootprintType getFootprintType() {
             return AlleleFootprintType.LOG_STABILITY;
+        }
+
+        @Override public BindPredictor getBindPredictor() {
+            return NetStabPredictor.INSTANCE;
         }
     }
 }
