@@ -1,0 +1,6 @@
+*~
+build/*
+doc/apidocs/*
+lib/*
+.DS_Store
+*/.DS_Store
