@@ -1,9 +1,9 @@
 
 package nfi.model;
 
-import jean.hla.Allele;
-import jean.neo.PeptidePair;
-import jean.peptide.Peptide;
+import jene.hla.Allele;
+import jene.neo.PeptidePair;
+import jene.peptide.Peptide;
 
 /**
  * Encapsulates the results of a footprint index calculation for an

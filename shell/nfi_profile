@@ -1,0 +1,12 @@
+########################################################################
+# Environment variables required to run NFI applications.
+########################################################################
+
+if [ -z "${GITHUB_ROOT}" ]
+then
+    echo "Environment variable GITHUB_ROOT is not set; exiting."
+    exit 1
+fi
+
+# GitHub project directory
+export NFI_HOME=${GITHUB_ROOT}/nfi

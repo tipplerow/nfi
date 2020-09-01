@@ -4,11 +4,11 @@ package nfi.junit;
 import jam.junit.NumericTestBase;
 import jam.util.RegexUtil;
 
-import jean.hla.Allele;
-import jean.neo.NeoPeptide;
-import jean.neo.PeptidePair;
-import jean.neo.SelfPeptide;
-import jean.peptide.Peptide;
+import jene.hla.Allele;
+import jene.neo.NeoPeptide;
+import jene.neo.PeptidePair;
+import jene.neo.SelfPeptide;
+import jene.peptide.Peptide;
 
 import nfi.model.AlleleFootprintIndex;
 import nfi.model.AlleleFootprintType;

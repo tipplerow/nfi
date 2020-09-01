@@ -2,7 +2,7 @@
   <path id="classpath.build.nfi">
     <path refid="classpath.build.jam"/>
     <pathelement path="${jam.home}/lib/jam.jar"/>
-    <pathelement path="${jean.home}/lib/jean.jar"/>
+    <pathelement path="${jene.home}/lib/jene.jar"/>
     <pathelement path="${pepmhc.home}/lib/pepmhc.jar"/>
     <fileset dir="${dir.jlib}">
       <!-- Just a placeholder for now... -->

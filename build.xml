@@ -3,7 +3,7 @@
   <property environment="env"/>
   
   <property name="jam.home" value="${env.JAM_HOME}"/>
-  <property name="jean.home" value="${env.JEAN_HOME}"/>
+  <property name="jene.home" value="${env.JENE_HOME}"/>
   <property name="pepmhc.home" value="${env.PEPMHC_HOME}"/>
 
   <import file="${jam.home}/conf/build_common.xml"/>

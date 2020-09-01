@@ -8,9 +8,9 @@ import java.util.List;
 import jam.app.JamProperties;
 import jam.math.DoubleUtil;
 
-import jean.hla.Allele;
-import jean.neo.PeptidePair;
-import jean.peptide.Peptide;
+import jene.hla.Allele;
+import jene.neo.PeptidePair;
+import jene.peptide.Peptide;
 
 import pepmhc.bind.BindPredictor;
 import pepmhc.bind.BindRecord;
