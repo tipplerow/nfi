@@ -1,6 +1,8 @@
 
 package nfi.model;
 
+import java.util.Comparator;
+
 import jam.io.Delimiter;
 import jam.report.LineBuilder;
 
@@ -44,6 +46,23 @@ public final class AlleleFootprintRecord {
         this.selfBindingPct = selfBindingPct;
         this.footprintIndex = footprintIndex;
     }
+
+    public static Comparator<AlleleFootprintRecord> COMPARATOR =
+        new Comparator<AlleleFootprintRecord>() {
+            @Override public int compare(AlleleFootprintRecord rec1, AlleleFootprintRecord rec2) {
+                int pairCmp = PeptidePairRecord.COMPARATOR.compare(rec1.pairRecord, rec2.pairRecord);
+
+                if (pairCmp != 0)
+                    return pairCmp;
+
+                int alleleCmp = rec1.patientAllele.compareTo(rec2.patientAllele);
+
+                if (alleleCmp != 0)
+                    return alleleCmp;
+                else
+                    return rec1.footprintType.compareTo(rec2.footprintType);
+            }
+        };
 
     /**
      * The standard delimiter for flat files containing peptide pair
