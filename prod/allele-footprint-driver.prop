@@ -1,0 +1,7 @@
+########################################################################
+# Sample property file for the AlleleFootprintDriver
+########################################################################
+
+AlleleFootprintDriver.peptidePairFile     = ${TIPPLEROW_DATA_VAULT}/Miao/Neo/Miao_PeptidePair_9.txt.gz
+AlleleFootprintDriver.patientGenotypeFile = ${TIPPLEROW_DATA_VAULT}/Miao/Cohort/Miao_Patient_Genotype.csv
+AlleleFootprintDriver.tumorPatientFile    = ${TIPPLEROW_DATA_VAULT}/Miao/Cohort/Miao_Tumor_Patient_Map.tsv
